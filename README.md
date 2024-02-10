@@ -24,8 +24,6 @@ This Repo is helpful for Data analyst roadmap.
 
 ## Finance Report :
 
-- **Project objective:** 
-
     **1.** Create Profit and Loss (P&L) reports by [Fiscal Year] & [Months] 
 
    **2.** Create Profit and Loss (P&L) reports
