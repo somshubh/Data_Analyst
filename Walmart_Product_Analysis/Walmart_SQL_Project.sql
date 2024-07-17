@@ -161,3 +161,102 @@ group by [Product line],Gender order by COUNT(Gender) desc;
 --What is the average rating of each product line?
 select "Product line",  round(avg(Rating),3) "Avg Rating" from walmart_sql_project..walmartsalesdata
 group by [Product line] order by avg(Rating) desc;
+
+----------------------------------------- Sales --------------------------------------
+
+--Number of sales made in each time of the day per weekday
+
+select * from walmart_sql_project..walmartsalesdata;
+
+select time_of_day, count([Invoice ID]) as Number_of_Sales from walmart_sql_project..walmartsalesdata
+where day_name = 'Sun'
+group by time_of_day order by count([Invoice ID]) DESC;
+
+--Ans:  Evening hours are highest sale.
+
+--Which of the customer types brings the most revenue?
+
+select [Customer type], convert(int,sum(Total)) as "Total Revenue" from walmart_sql_project..walmartsalesdata
+group by [Customer type] order by "Total Revenue" DESC;
+
+--Ans: "Member" customer types brings the most revenue.
+
+--Which city has the largest tax percent/ VAT (Value Added Tax)?
+
+select top 1 City, convert(int,sum([Tax 5%])) as "Total Tax Percent" from walmart_sql_project..walmartsalesdata
+group by City order by "Total Tax Percent" DESC;
+
+-- Ans: "Naypyitaw" has the largest tax percent.
+
+--Which customer type pays the most in VAT?
+
+select top 1 [Customer type], convert(int,sum([Tax 5%])) as "Total Tax Percent" from walmart_sql_project..walmartsalesdata
+group by [Customer type] order by "Total Tax Percent" DESC;
+
+-- "Member" customer type pays the most in VAT.
+
+------------------------------------------ Customer ------------------------------------
+select * from walmart_sql_project..walmartsalesdata;
+
+--How many unique customer types does the data have?
+
+select count(distinct [Customer type]) as "Unique Customer Type" from walmart_sql_project..walmartsalesdata;
+
+--Ans: 2 unique customer types are present in this dataset.
+
+--How many unique payment methods does the data have?
+
+select count(distinct Payment) as "Unique Payment" from walmart_sql_project..walmartsalesdata;
+
+--Ans: 3 unique payment methods present in this data set.
+
+--What is the most common customer type?
+
+select top 1 [Customer type], count([Customer type]) AS "Count_Customer_Type" from walmart_sql_project..walmartsalesdata
+group by [Customer type] ORDER BY "Count_Customer_Type" DESC;
+
+--Ans: "Member" is the most common customer type.
+
+--Which customer type buys the most?
+
+select top 1 [Customer type], sum(Quantity) as "Total Quantity"  from walmart_sql_project..walmartsalesdata
+group by [Customer type] ORDER BY "Total Quantity" DESC;
+
+--Ans: "Member" buys most.
+
+--What is the gender of most of the customers?
+
+select top 1 gender, count(gender) as "Gender Count"  from walmart_sql_project..walmartsalesdata
+group by gender ORDER BY "Gender Count" DESC;
+
+--Ans: "Female" gender is most of the customers.
+
+--What is the gender distribution per branch?
+
+select Branch, gender, count(gender) as "Gender Count"  from walmart_sql_project..walmartsalesdata
+group by Branch,Gender ORDER BY Branch;
+
+--Which time of the day do customers give most ratings?
+
+select top 1 time_of_day, round(AVG(Rating),2) as Avg_Rating  from walmart_sql_project..walmartsalesdata
+group by time_of_day ORDER BY Avg_Rating desc;
+
+--Afternoon customers gives most ratings.
+
+--Which time of the day do customers give most ratings per branch?
+
+
+select branch, time_of_day, round(AVG(Rating),2) as Avg_Rating  from walmart_sql_project..walmartsalesdata
+group by branch, time_of_day ORDER BY Avg_Rating desc;
+
+--Which day fo the week has the best avg ratings?
+
+select day_name, round(AVG(Rating),2) as Avg_Rating  from walmart_sql_project..walmartsalesdata
+group by day_name ORDER BY Avg_Rating desc;
+
+--Ans: Monday has the best avg ratings.
+
+--Which day of the week has the best average ratings per branch?
+
+select branch, day_name, round(AVG(Rating),2) as Avg_Rating  from walmart_sql_project..walmartsalesdata
+group by branch, day_name ORDER BY branch, Avg_Rating desc;
