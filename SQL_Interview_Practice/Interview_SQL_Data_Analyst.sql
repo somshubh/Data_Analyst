@@ -360,7 +360,10 @@ select *,
 	 else 0
  end) as flag
 from brand)
+-- select * from cte
 select * from brand where brand not in (select brand from cte where flag =0)
+
+--select *, LEAD(amount, 1, amount+1) over(partition by brand order by year) from brand
 
 ------------
 -- 1. Remove duplicate Records
@@ -673,3 +676,487 @@ case when cnt_2021 = 0 then 1 else cnt_2021 end
 ) as Avg_Billing_Amount 
 from cte;
 
+-----------------------------
+
+create table dbo.Vote(
+voter nvarchar(255),
+candidate nvarchar(255)
+);
+
+
+insert into vote values('Somshubhra Giri',null),
+('Suresh', 'Modi'),
+('Suresh', 'Arvind'),
+('Suresh', 'Mamata'),
+('Subham', 'Modi'),
+('rounak', 'Mamata'),
+('Rohit', 'Biman'),
+('Rohit', 'Mamata');
+
+select * from vote;
+-- if the ome votar gives vote multiple candidates then it's equally distribute for each candidate
+
+with cte as(
+select voter, candidate, round(1/convert(float,count(candidate) over (partition by voter)),2) as vote_count
+from vote
+where candidate is not null
+),
+cte2 as(
+select candidate, sum(vote_count) "Total_votes", dense_rank() over(order by sum(vote_count) desc) ds_rn
+from cte
+group by candidate
+)
+select * from cte2 where ds_rn = 1
+
+-----------------------------------------------------
+
+create table category(
+category nvarchar(255),
+subcategory nvarchar(255)
+)
+
+insert into category values('chocolate','Kitkat'),
+(null,'Perk'),
+('chocolate','Munch'),
+(null,'Daiery Milk'),
+('Biscuite', 'Good Day'),
+(null, 'JimJam'),
+(null, 'Hide & Sick');
+
+
+with cte as(
+select *,
+row_number() over(order by (select null)) as id
+from category
+),
+cte2 as(
+select *, lead(id,1) over(order by id) as next_id from cte
+where category is not null
+)
+select c2.*, c1.* from cte c1 join cte2 c2 on c1.id >= c2.id and (c1.id <= c2.next_id -1 or c2.next_id is null)
+-- select c1.category, c2.category from category c1 join category c2 on c1.subcategory = c2.subcategory
+
+------------------------------
+--drop table if exists Salary;
+--create table Salary(
+--empName nvarchar(255),
+--deptid int,
+--salary int
+--);
+
+insert into salary values('Siva', 1, 30000),
+('Ravi', 2, 40000),
+('Prasad', 1, 50000),
+('Sai', 2, 20000),
+('Anna', 2, 10000);
+
+select * from salary;
+
+
+with cte as(
+select *,
+row_number() over(partition by deptid order by salary desc) rn_desc,
+row_number() over(partition by deptid order by salary asc) rn_asc
+from salary
+),
+cte2 as(
+select (
+case
+when rn_desc = 1 then concat(empName, ' - ', 'Max Salary',' - ','Dept ', convert(varchar,cte.deptid))
+end
+) max_salary_empname,
+ (
+case
+when rn_asc = 1 then concat(empName, '-', 'Min Salary',' - ','Dept ', convert(varchar,cte.deptid))
+end
+) min_salary_empname
+from cte)
+select cte2.max_salary_empname as "Employee_Name" from cte2
+where max_salary_empname is not null
+union
+select cte2.min_salary_empname as "Employee_Name" from cte2
+where min_salary_empname is not null;
+
+---------------------
+CREATE TABLE products (
+  product_id INT PRIMARY KEY,
+  product_name VARCHAR(50),
+  category VARCHAR(50)
+);
+
+INSERT INTO products (product_id, product_name, category) VALUES
+  (1, 'Laptops', 'Electronics'),
+  (2, 'Jeans', 'Clothing'),
+  (3, 'Chairs', 'Home Appliances');
+
+
+CREATE TABLE sales (
+  product_id INT,
+  year INT,
+  total_sales_revenue DECIMAL(10, 2),
+  PRIMARY KEY (product_id, year),
+  FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
+
+INSERT INTO sales (product_id, year, total_sales_revenue) VALUES
+  (1, 2019, 1000.00),
+  (1, 2020, 1200.00),
+  (1, 2021, 1100.00),
+  (2, 2019, 500.00),
+  (2, 2020, 600.00),
+  (2, 2021, 900.00),
+  (3, 2019, 300.00),
+  (3, 2020, 450.00),
+  (3, 2021, 400.00);
+
+  select * from sales;
+
+  with cte as (
+  select *,
+  (case
+   when total_sales_revenue < lead(total_sales_revenue,1,total_sales_revenue+1) over(partition by product_id order by year) then 1
+   else 0
+   end
+  ) as flag
+  from sales
+  )
+  select distinct p.product_name from sales s join products p
+  on p.product_id = s.product_id
+  where s.product_id not in (select product_id from cte where flag = 0);
+
+  -------------------
+
+  CREATE TABLE AttendanceLogs (
+    UserID INT,
+    LogDate DATE,
+    LoggedIn CHAR
+);
+
+-- DML (Data Manipulation Language) Statements
+-- Insert dummy records into the Logs table
+INSERT INTO AttendanceLogs (LoggedIn, LogDate, UserID)
+VALUES
+ ('Y', '2023-01-01', 101),
+ ('N', '2023-01-01', 102),
+ ('N', '2023-01-01', 103),
+ ('Y', '2023-01-01', 104),
+ ('Y', '2023-01-01', 105),
+ ('N', '2023-01-02', 101),
+ ('Y', '2023-01-02', 102),
+ ('N', '2023-01-02', 103),
+ ('Y', '2023-01-02', 104),
+ ('N', '2023-01-02', 105),
+ ('Y', '2023-01-03', 101),
+ ('Y', '2023-01-03', 102),
+ ('N', '2023-01-03', 103),
+ ('Y', '2023-01-03', 104),
+ ('N', '2023-01-03', 105),
+ ('N', '2023-01-04', 101),
+ ('N', '2023-01-04', 102),
+ ('N', '2023-01-04', 103),
+ ('Y', '2023-01-04', 104),
+ ('Y', '2023-01-04', 105),
+ ('Y', '2023-01-05', 101),
+ ('Y', '2023-01-05', 102),
+ ('Y', '2023-01-05', 103),
+ ('N', '2023-01-05', 104),
+ ('N', '2023-01-05', 105),
+ ('N', '2023-01-06', 101),
+ ('Y', '2023-01-06', 102),
+ ('Y', '2023-01-06', 103),
+ ('Y', '2023-01-06', 104),
+ ('N', '2023-01-06', 105),
+ ('N', '2023-01-07', 101),
+ ('Y', '2023-01-07', 102),
+ ('N', '2023-01-07', 103),
+ ('N', '2023-01-07', 104),
+ ('Y', '2023-01-07', 105);
+
+ with cte as(
+ select *,
+ case when loggedin = 'N' then 1 else 0 end as flag,
+ concat('Group',sum(case when loggedin = 'N' then 1 else 0 end) over (partition by userid order by logdate)) as cuma_flag
+ from AttendanceLogs)
+
+ select Userid,count(*) student_Count,
+   min(logdate) as Date_Start,
+   max(logdate) as Date_End
+   from cte where loggedin = 'Y'
+   group by userid,cuma_flag
+   having count(*) >=2;
+
+create table reportlog(
+student_id int,
+name nvarchar(255),
+manager_id int
+)
+
+insert into reportlog values(1,'Suresh',null),
+(2,'Mahesh',1),
+(3,'Ratul',1),
+(4,'Rockey',2),
+(5,'Somesh',3),
+(6,'Sourav',3);
+
+select * from reportlog;
+
+select r2.name, count(r1.student_id) from reportlog r1 join reportlog r2 on r1.manager_id = r2.student_id
+where r1.manager_id is not null
+group by r2.name
+
+---------------------
+
+CREATE TABLE city_population (
+ state VARCHAR(50),
+ city VARCHAR(50),
+ population INT
+);
+
+-- Insert the data
+INSERT INTO city_population (state, city, population) VALUES ('haryana', 'ambala', 100);
+INSERT INTO city_population (state, city, population) VALUES ('haryana', 'panipat', 200);
+INSERT INTO city_population (state, city, population) VALUES ('haryana', 'gurgaon', 300);
+INSERT INTO city_population (state, city, population) VALUES ('punjab', 'amritsar', 150);
+INSERT INTO city_population (state, city, population) VALUES ('punjab', 'ludhiana', 400);
+INSERT INTO city_population (state, city, population) VALUES ('punjab', 'jalandhar', 250);
+INSERT INTO city_population (state, city, population) VALUES ('maharashtra', 'mumbai', 1000);
+INSERT INTO city_population (state, city, population) VALUES ('maharashtra', 'pune', 600);
+INSERT INTO city_population (state, city, population) VALUES ('maharashtra', 'nagpur', 300);
+INSERT INTO city_population (state, city, population) VALUES ('karnataka', 'bangalore', 900);
+INSERT INTO city_population (state, city, population) VALUES ('karnataka', 'mysore', 400);
+INSERT INTO city_population (state, city, population) VALUES ('karnataka', 'mangalore', 200);
+
+select * from city_population;
+
+with cte as(
+select *,
+row_number() over(partition by state order by population desc) rn_desc,
+row_number() over(partition by state order by population asc) rn_asc
+from city_population
+),
+cte2 as(
+select state,
+case when rn_desc = 1 then city end as max_City,
+case when rn_asc = 1 then city end as min_City 
+from cte
+)
+
+select * from cte2 where max_city is not null or min_city is not null
+
+----------------------
+WITH CTE AS(
+SELECT state, FIRST_VALUE(city) OVER(PARTITION BY state ORDER BY population DESC) AS [City Max(Population)],
+FIRST_VALUE(city) OVER(PARTITION BY state ORDER BY population) AS [City Min(Population)]
+FROM city_population)
+select distinct state, [City Max(Population)], [City Min(Population)] from cte;
+--, CTE2 AS(
+--SELECT *, row_number() OVER(PARTITION BY state ORDER BY (SELECT NULL)) AS RN
+--FROM CTE)
+--select * from cte2
+
+--SELECT state, [City Max(Population)], [City Min(Population)]
+--FROM CTE2
+--WHERE RN = 1
+
+-----------------------------
+
+CREATE TABLE dbo.events (
+ID int,
+event varchar(255),
+YEAR INt,
+GOLD varchar(255),
+SILVER varchar(255),
+BRONZE varchar(255)
+);
+
+-- delete from events;
+
+INSERT INTO events VALUES (1,'100m',2016, 'Amthhew Mcgarray','donald','barbara');
+INSERT INTO events VALUES (2,'200m',2016, 'Nichole','Alvaro Eaton','janet Smith');
+INSERT INTO events VALUES (3,'500m',2016, 'Charles','Nichole','Susana');
+INSERT INTO events VALUES (4,'100m',2016, 'Ronald','maria','paula');
+INSERT INTO events VALUES (5,'200m',2016, 'Alfred','carol','Steven');
+INSERT INTO events VALUES (6,'500m',2016, 'Nichole','Alfred','Brandon');
+INSERT INTO events VALUES (7,'100m',2016, 'Charles','Dennis','Susana');
+INSERT INTO events VALUES (8,'200m',2016, 'Thomas','Dawn','catherine');
+INSERT INTO events VALUES (9,'500m',2016, 'Thomas','Dennis','paula');
+INSERT INTO events VALUES (10,'100m',2016, 'Charles','Dennis','Susana');
+INSERT INTO events VALUES (11,'200m',2016, 'jessica','Donald','Stefeney');
+INSERT INTO events VALUES (12,'500m',2016,'Thomas','Steven','Catherine');
+
+select * from events
+
+with cte as(
+select *,
+count(*) over(partition by gold order by id) rn
+from events
+)
+select * from cte;
+select gold, max(rn) as Medal_count from cte 
+where gold not in (select bronze from events union all select silver from events)
+group by gold;
+
+create table dbo.tickets
+(
+ticket_id varchar(10),
+create_date date,
+resolved_date date
+);
+delete from tickets;
+insert into tickets values
+(1,'2022-08-01','2022-08-03')
+,(2,'2022-08-01','2022-08-12')
+,(3,'2022-08-01','2022-08-16');
+create table holidays
+(
+holiday_date date
+,reason varchar(100)
+);
+delete from holidays;
+insert into holidays values
+('2022-08-11','Rakhi'),('2022-08-15','Independence day');
+
+select * from tickets;
+
+select * from holidays;
+
+with cte as(
+select ticket_id, create_date, resolved_date,holiday_date,
+count(holiday_date) over(partition by ticket_id, create_date, resolved_date) as holiday_count
+from tickets t left join holidays h on h.holiday_date between t.create_date and t.resolved_date
+),
+cte2 as (
+select *,
+(case
+	when datename(weekday, holiday_date) = 'Sunday' then holiday_count-1
+	when datename(weekday, holiday_date) = 'Saturday' then holiday_count-1
+	else holiday_count
+end
+) as weekend_holiday_count,
+row_number() over(partition by ticket_id, create_date, resolved_date order by ticket_id) rn
+from cte
+),
+cte3 as (
+select *,
+row_number() over (partition by ticket_id, create_date, resolved_date order by rn desc) rn_actual
+from cte2
+)
+select distinct ticket_id, create_date, resolved_date,
+datediff(day,create_date, resolved_date) - 2*(datediff(week,create_date, resolved_date)) - weekend_holiday_count as Business_day 
+from cte3 where rn_actual =1
+
+select *, datename(weekday, holiday_date) weekday from holidays;
+
+update holidays set holiday_date = '2022-08-14' where holiday_date = '2022-08-15'
+update holidays set holiday_date = '2022-08-13' where holiday_date = '2022-08-11'
+--datediff(day,create_date, resolved_date) as Actual_Date,
+--datediff(week,create_date, resolved_date) as week_diff,
+
+-----------------------
+create table hospital ( emp_id int
+, action varchar(10)
+, time datetime);
+
+insert into hospital values ('1', 'in', '2019-12-22 09:00:00');
+insert into hospital values ('1', 'out', '2019-12-22 09:15:00');
+insert into hospital values ('2', 'in', '2019-12-22 09:00:00');
+insert into hospital values ('2', 'out', '2019-12-22 09:15:00');
+insert into hospital values ('2', 'in', '2019-12-22 09:30:00');
+insert into hospital values ('3', 'out', '2019-12-22 09:00:00');
+insert into hospital values ('3', 'in', '2019-12-22 09:15:00');
+insert into hospital values ('3', 'out', '2019-12-22 09:30:00');
+insert into hospital values ('3', 'in', '2019-12-22 09:45:00');
+insert into hospital values ('4', 'in', '2019-12-22 09:45:00');
+insert into hospital values ('5', 'out', '2019-12-22 09:40:00');
+with cte as(
+select emp_id,
+max(case when action = 'in' then time end) as intime,
+max(case when action = 'out' then time end) as outtime
+from hospital
+group by emp_id
+)
+select * from cte where intime > outtime or outtime is null
+-------------------
+
+create table airbnb_searches 
+(
+user_id int,
+date_searched date,
+filter_room_types varchar(200)
+);
+-- delete from airbnb_searches;
+insert into airbnb_searches values
+(1,'2022-01-01','entire home,private room')
+,(2,'2022-01-02','entire home,shared room')
+,(3,'2022-01-02','private room,shared room')
+,(4,'2022-01-03','private room');
+
+-- select STRING_SPLIT(filter_room_types, ',') from airbnb_searches;
+
+with cte as(
+SELECT * from airbnb_searches
+ Cross apply STRING_SPLIT(filter_room_types, ',')
+ )
+ select value as Room_Type, count(value) No_of_Search from cte
+ group by value
+ order by count(value) desc;
+
+ ---------------------------------
+
+ create table orders(
+ order_id  int primary key,
+ customer_id int,
+ order_date date,
+ order_amount int,
+ department_id int
+ );
+
+ create table departments(
+ department_id int,
+ department_name nvarchar(255)
+ );
+
+ create table customers(
+ customer_id int,
+ last_name nvarchar(255),
+ first_name nvarchar(255)
+ );
+
+ insert into departments values (1, 'Electronics'),
+ (2, 'Hardware'),
+ (3, 'Software');
+
+ select * from departments;
+
+ insert into customers values (1, 'Giri', 'Somshubhra'),
+ (2, 'Saha', 'Ritwik'),
+ (3, 'Patra', 'Subhajit');
+
+ select * from customers;
+
+ insert into orders values (8, 2, '2022-09-12', 7800, 1),
+ (2, 1, '2021-03-14', 5600, 2),
+ (3, 2, '2022-09-12', 7800, 1),
+ (4, 3, '2020-03-14', 76909, 3),
+ (5, 3, '2020-07-18', 76909, 2);
+
+ select * from orders;
+ select * from customers;
+ select * from departments;
+
+ with cte as(
+ select o.department_id, o.customer_id, o.order_date, c.first_name, c.last_name
+ from orders o join customers c on c.customer_id = o.customer_id
+ where year(order_date) = '2021'
+ )
+  select department_name, count(c.department_id) from cte c join departments d on d.department_id = c.department_id
+  group by department_name
+ -- select * from cte
+
+ select department_name, count(department_name) as Customers_Number from departments where department_id in (select department_id from cte )
+ group by department_name;
+
+ select dateadd(day,-10,getdate())
+
+ select * from orders where order_date between dateadd(day,-10,(select max(order_date) from orders)) 
+ and (select max(order_date) from orders);
