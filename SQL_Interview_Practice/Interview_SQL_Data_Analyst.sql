@@ -1160,3 +1160,247 @@ SELECT * from airbnb_searches
 
  select * from orders where order_date between dateadd(day,-10,(select max(order_date) from orders)) 
  and (select max(order_date) from orders);
+
+drop table if exists employees;
+CREATE TABLE employees  
+(employee_id int,
+employee_name varchar(15), 
+email_id varchar(15) );
+
+-- delete from employees;
+
+INSERT INTO employees (employee_id,employee_name, email_id) VALUES ('101','Liam Alton', 'li.al@abc.com');
+INSERT INTO employees (employee_id,employee_name, email_id) VALUES ('102','Josh Day', 'jo.da@abc.com');
+INSERT INTO employees (employee_id,employee_name, email_id) VALUES ('103','Sean Mann', 'se.ma@abc.com'); 
+INSERT INTO employees (employee_id,employee_name, email_id) VALUES ('104','Evan Blake', 'ev.bl@abc.com');
+INSERT INTO employees (employee_id,employee_name, email_id) VALUES ('105','Toby Scott', 'jo.da@abc.com');
+INSERT INTO employees (employee_id,employee_name, email_id) VALUES ('106','Anjali Chouhan', 'JO.DA@ABC.COM');
+INSERT INTO employees (employee_id,employee_name, email_id) VALUES ('107','Ankit Bansal', 'AN.BA@ABC.COM');
+
+select * from employees;
+
+with cte as(
+select*,
+ascii(email_id) as_value,
+rank() over(partition by email_id order by ascii(email_id) desc) rn
+from employees)
+-- select * from cte;
+select employee_id, employee_name, email_id from cte where rn =1
+
+---------------------
+drop table if exists city_population;
+CREATE TABLE city_population (
+    state VARCHAR(50),
+    city VARCHAR(50),
+    population INT
+);
+
+-- Insert the data
+INSERT INTO city_population (state, city, population) VALUES ('haryana', 'ambala', 100);
+INSERT INTO city_population (state, city, population) VALUES ('haryana', 'panipat', 200);
+INSERT INTO city_population (state, city, population) VALUES ('haryana', 'gurgaon', 300);
+INSERT INTO city_population (state, city, population) VALUES ('punjab', 'amritsar', 150);
+INSERT INTO city_population (state, city, population) VALUES ('punjab', 'ludhiana', 400);
+INSERT INTO city_population (state, city, population) VALUES ('punjab', 'jalandhar', 250);
+INSERT INTO city_population (state, city, population) VALUES ('maharashtra', 'mumbai', 1000);
+INSERT INTO city_population (state, city, population) VALUES ('maharashtra', 'pune', 600);
+INSERT INTO city_population (state, city, population) VALUES ('maharashtra', 'nagpur', 300);
+INSERT INTO city_population (state, city, population) VALUES ('karnataka', 'bangalore', 900);
+INSERT INTO city_population (state, city, population) VALUES ('karnataka', 'mysore', 400);
+INSERT INTO city_population (state, city, population) VALUES ('karnataka', 'mangalore', 200);
+select * from city_population;
+
+with cte as(
+select state,
+first_value(city) over (partition by state order by population desc) max_city,
+first_value(city) over (partition by state order by population asc) min_city
+from city_population
+)
+select distinct * from cte;
+
+-----------------------------------------
+drop table if exists tickets;
+CREATE TABLE tickets (
+    airline_number VARCHAR(10),
+    origin VARCHAR(3),
+    destination VARCHAR(3),
+    oneway_round CHAR(1),
+    ticket_count INT
+);
+
+
+INSERT INTO tickets (airline_number, origin, destination, oneway_round, ticket_count)
+VALUES
+    ('DEF456', 'BOM', 'DEL', 'O', 150),
+    ('GHI789', 'DEL', 'BOM', 'R', 50),
+    ('JKL012', 'BOM', 'DEL', 'R', 75),
+    ('MNO345', 'DEL', 'NYC', 'O', 200),
+    ('PQR678', 'NYC', 'DEL', 'O', 180),
+    ('STU901', 'NYC', 'DEL', 'R', 60),
+    ('ABC123', 'DEL', 'BOM', 'O', 100),
+    ('VWX234', 'DEL', 'NYC', 'R', 90);
+
+	select * from tickets;
+
+with cte as (
+select origin, destination, oneway_round, ticket_count from tickets
+union all
+select destination, origin, oneway_round, ticket_count from tickets
+where oneway_round = 'R'
+)
+select origin, destination, sum(ticket_count) as tc from cte group by origin, destination
+order by sum(ticket_count) desc;
+
+
+--------------------
+
+
+--create table source(id int, name varchar(5))
+
+--create table target(id int, name varchar(5))
+
+--insert into source values(1,'A'),(2,'B'),(3,'C'),(4,'D')
+
+--insert into target values(1,'A'),(2,'B'),(4,'X'),(5,'F');
+
+select * from target;
+select * from source;
+
+select coalesce(s.id,t.id)as id, 
+--t.name as target_name, s.name as source_name 
+(case
+ when t.name is null then 'New in Source'
+ when s.name is null then 'New in Target'
+ when t.name != s.name then 'Mismatch'
+end) as Comments
+from target t full outer join source s on t.id = s.id
+where t.name != s.name or t.name is null or s.name is null
+order by id asc
+
+--------------------
+-- 2nd approach
+
+with cte as(
+select *, 'Target' as table_name from target
+union all
+select *, 'Source' as table_name  from source
+)
+select id,
+-- count(*) cnt,
+(case
+ when min(name) != max(name) then 'Mismatch'
+ when min(table_name) = 'Source' then 'New in Source'
+ else 'New in Target'
+end) as comment
+--min(name) as min_name, max(name) as max_name,min(table_name) as min_table, max(table_name) as max_table 
+from cte group by id
+having count(*) =1 or (count(*) = 2 and min(name) != max(name))
+
+-----------------------
+create table namaste_python (
+file_name varchar(25),
+content varchar(200)
+);
+
+delete from namaste_python;
+insert into namaste_python values ('python bootcamp1.txt','python for data analytics 0 to hero bootcamp starting on Jan 6th')
+,('python bootcamp2.txt','classes will be held on weekends from 11am to 1 pm for 5-6 weeks')
+,('python bootcamp3.txt','use code NY2024 to get 33 percent off. You can register from namaste sql website. Link in pinned comment')
+
+
+select value as word, count(*) Cnt from namaste_python
+cross apply string_split(content, ' ')
+group by value
+having count(*) >1
+order by count(*) desc;
+----------------------------
+
+CREATE TABLE flights 
+(
+    cid VARCHAR(512),
+    fid VARCHAR(512),
+    origin VARCHAR(512),
+    Destination VARCHAR(512)
+);
+
+INSERT INTO flights (cid, fid, origin, Destination) VALUES ('1', 'f1', 'Del', 'Hyd');
+INSERT INTO flights (cid, fid, origin, Destination) VALUES ('1', 'f2', 'Hyd', 'Blr');
+INSERT INTO flights (cid, fid, origin, Destination) VALUES ('2', 'f3', 'Mum', 'Agra');
+INSERT INTO flights (cid, fid, origin, Destination) VALUES ('2', 'f4', 'Agra', 'Kol');
+
+select * from flights;
+
+select distinct cid,  FIRST_VALUE(origin) over(partition by cid order by fid) as origin,
+FIRST_VALUE(destination) over(partition by cid order by fid desc) as destination
+from flights
+
+CREATE TABLE sales 
+(
+    order_date date,
+    customer VARCHAR(512),
+    qty INT
+);
+
+INSERT INTO sales (order_date, customer, qty) VALUES ('2021-01-01', 'C1', '20');
+INSERT INTO sales (order_date, customer, qty) VALUES ('2021-01-01', 'C2', '30');
+INSERT INTO sales (order_date, customer, qty) VALUES ('2021-02-01', 'C1', '10');
+INSERT INTO sales (order_date, customer, qty) VALUES ('2021-02-01', 'C3', '15');
+INSERT INTO sales (order_date, customer, qty) VALUES ('2021-03-01', 'C5', '19');
+INSERT INTO sales (order_date, customer, qty) VALUES ('2021-03-01', 'C4', '10');
+INSERT INTO sales (order_date, customer, qty) VALUES ('2021-04-01', 'C3', '13');
+INSERT INTO sales (order_date, customer, qty) VALUES ('2021-04-01', 'C5', '15');
+INSERT INTO sales (order_date, customer, qty) VALUES ('2021-04-01', 'C6', '10');
+
+select * from sales;
+
+with cte as (
+select *,
+row_number() over(partition by customer order by order_date) rn
+from sales)
+select concat(format(order_date,'MMM'),'-', format(order_date,'yy')) as order_date,  count(customer) Customer_count from cte
+where rn =1
+group by concat(format(order_date,'MMM'),'-', format(order_date,'yy'));
+
+-- select concat(format(order_date,'MMM'),'-', format(order_date,'yy')) from sales
+
+--------------
+
+create table icc_world_cup
+(
+match_no int,
+team_1 Varchar(20),
+team_2 Varchar(20),
+winner Varchar(20)
+);
+INSERT INTO icc_world_cup values(1,'ENG','NZ','NZ');
+INSERT INTO icc_world_cup values(2,'PAK','NED','PAK');
+INSERT INTO icc_world_cup values(3,'AFG','BAN','BAN');
+INSERT INTO icc_world_cup values(4,'SA','SL','SA');
+INSERT INTO icc_world_cup values(5,'AUS','IND','IND');
+INSERT INTO icc_world_cup values(6,'NZ','NED','NZ');
+INSERT INTO icc_world_cup values(7,'ENG','BAN','ENG');
+INSERT INTO icc_world_cup values(8,'SL','PAK','PAK');
+INSERT INTO icc_world_cup values(9,'AFG','IND','IND');
+INSERT INTO icc_world_cup values(10,'SA','AUS','SA');
+INSERT INTO icc_world_cup values(11,'BAN','NZ','NZ');
+INSERT INTO icc_world_cup values(12,'PAK','IND','IND');
+INSERT INTO icc_world_cup values(12,'SA','IND','DRAW');
+
+select * from icc_world_cup
+
+with all_match as(
+select team, sum(matched_played) matched_played from(
+select team_1 as team, count(*) matched_played from icc_world_cup group by team_1
+union all
+select team_2 as team, count(*) matched_played from icc_world_cup group by team_2)A
+group by team),
+winner_cte as(
+select winner as team, count(winner) win from icc_world_cup  group by winner)
+
+select a.team, a.matched_played, coalesce(w.win,0) win,
+a.matched_played - coalesce(w.win,0) loss,
+coalesce(w.win,0)*2 pts
+from all_match a left join winner_cte w on w.team = a.team
+order by win desc
+
+--select replicate('*',5)
